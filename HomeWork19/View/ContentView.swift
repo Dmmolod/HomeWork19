@@ -8,15 +8,19 @@
 import UIKit
 
 class ContentView: UIView {
-    
-    weak var delegate: UserActionsDelegate?
-    
-    private let imageView = UIImageView()
-    private let textField = UITextField()
+        
     private let countOfLikesLable = UILabel()
     private let commentsLable = UILabel()
+    var imageView = UIImageView()
+    let textField = UITextField()
     let removeDataButton = UIButton()
     let likeButton = UIButton()
+    var nextImageView = UIImageView()
+    var previousImageView = UIImageView()
+    lazy var imageViewAnimateConstraints = (center: self.imageView.centerXAnchor.constraint(equalTo: self.centerXAnchor),
+                                            hideToLeft: self.imageView.rightAnchor.constraint(equalTo: self.leftAnchor),
+                                            hideToRight: self.imageView.leftAnchor.constraint(equalTo: self.rightAnchor))
+    
     
     var image: UIImage? {
         set {
@@ -49,8 +53,8 @@ class ContentView: UIView {
     
     init() {
         super.init(frame: .zero)
-        self.commonInit()
         
+        self.commonInit()
         self.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(self.resign)))
     }
     
@@ -63,26 +67,68 @@ class ContentView: UIView {
         self.textField.resignFirstResponder()
     }
     
+    func animateSwitchImage(image: UIImage?, swipeSide: SwipeSide) {
+        self.imageViewAnimateConstraints.center.isActive = false
+        switch swipeSide {
+        case .left:
+            self.nextImageView.image = image
+            self.imageViewAnimateConstraints.hideToLeft.isActive = true
+        case .right:
+            self.previousImageView.image = image
+            self.imageViewAnimateConstraints.hideToRight.isActive = true
+        }
+        
+        UIView.animate(withDuration: 0.3) {
+            self.layoutIfNeeded()
+        } completion: { _ in
+            self.imageViewAnimateConstraints.hideToRight.isActive = false
+            self.imageViewAnimateConstraints.hideToLeft.isActive = false
+            self.imageViewAnimateConstraints.center.isActive = true
+            self.image = image
+
+        }
+    }
+        
     private func commonInit() {
         
         // setup imageView
         
+        
         self.imageView.contentMode = .scaleAspectFit
         self.imageView.clipsToBounds = true
-        self.imageView.backgroundColor = .white
         
         self.imageView.translatesAutoresizingMaskIntoConstraints = false
         self.addSubview(self.imageView)
+        self.imageViewAnimateConstraints.center.isActive = true
         NSLayoutConstraint.activate([
             self.imageView.topAnchor.constraint(equalTo: self.topAnchor),
             self.imageView.widthAnchor.constraint(equalTo: self.widthAnchor),
-            self.imageView.centerXAnchor.constraint(equalTo: self.centerXAnchor),
-            self.imageView.heightAnchor.constraint(equalTo: self.imageView.widthAnchor)
+            self.imageView.heightAnchor.constraint(equalTo: self.imageView.widthAnchor),
+        ])
+        
+        // setup nextImageView & previousImageView
+        
+        self.nextImageView.contentMode = .scaleAspectFit
+        self.previousImageView.contentMode = .scaleAspectFit
+
+        self.previousImageView.translatesAutoresizingMaskIntoConstraints = false
+        self.nextImageView.translatesAutoresizingMaskIntoConstraints = false
+        self.addSubview(self.nextImageView)
+        self.addSubview(self.previousImageView)
+        NSLayoutConstraint.activate([
+            self.nextImageView.topAnchor.constraint(equalTo: self.topAnchor),
+            self.nextImageView.leftAnchor.constraint(equalTo: self.imageView.rightAnchor),
+            self.nextImageView.widthAnchor.constraint(equalTo: self.widthAnchor),
+            self.nextImageView.heightAnchor.constraint(equalTo: self.nextImageView.widthAnchor),
+            
+            self.previousImageView.topAnchor.constraint(equalTo: self.topAnchor),
+            self.previousImageView.rightAnchor.constraint(equalTo: self.imageView.leftAnchor),
+            self.previousImageView.widthAnchor.constraint(equalTo: self.widthAnchor),
+            self.previousImageView.heightAnchor.constraint(equalTo: self.nextImageView.widthAnchor)
         ])
         
         // setup textField
         
-        self.textField.delegate = self
         self.textField.returnKeyType = .send
         self.textField.backgroundColor = .white
         self.textField.layer.borderColor = UIColor.systemGray.cgColor
@@ -116,10 +162,6 @@ class ContentView: UIView {
         
         // setup button like
         
-        self.likeButton.addAction(UIAction(handler: { _ in
-            self.delegate?.tapLikeButton() // Передача управления делегату
-        }), for: .touchUpInside)
-        
         self.likeButton.translatesAutoresizingMaskIntoConstraints = false
         self.addSubview(self.likeButton)
         NSLayoutConstraint.activate([
@@ -146,9 +188,6 @@ class ContentView: UIView {
         self.removeDataButton.titleLabel?.font = .systemFont(ofSize: 15)
         self.removeDataButton.setTitle("Remove data", for: .normal)
         self.removeDataButton.setTitleColor(.black, for: .normal)
-        self.removeDataButton.addAction(UIAction(handler: { _ in
-            self.delegate?.removeData()
-        }), for: .touchUpInside)
         
         self.addSubview(self.removeDataButton)
         self.removeDataButton.translatesAutoresizingMaskIntoConstraints = false
@@ -157,18 +196,5 @@ class ContentView: UIView {
             self.removeDataButton.rightAnchor.constraint(equalTo: self.textField.leftAnchor, constant: -10),
             self.removeDataButton.bottomAnchor.constraint(equalTo: self.textField.bottomAnchor),
         ])
-    }
-}
-
-extension ContentView: UITextFieldDelegate {
-    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-        guard let text = textField.text,
-              !text.isEmpty
-        else { return true }
-        
-        self.delegate?.sendComment(comment: text)
-        textField.resignFirstResponder()
-        textField.text = nil
-        return true
     }
 }

@@ -12,25 +12,12 @@ class ImageScreen: Codable {
 
     var key: String
     var imageName: String
-    var userLike: Bool = false  {
-        didSet {
-            self.updateData()
-        }
-    }
-    var likes: Int = 0  {
-        didSet {
-            self.updateData()
-        }
-    }
-    
-    var comments: [String]? {
-        didSet {
-            self.updateData()
-        }
-    }
+    var userLike: Bool = false
+    var likes: Int = 0
+    var comments: [String]?
     
     init(key: String) {
-        self.likes = (0...15000).shuffled().first! // Сделал просто для интереса, после оставления комментария или лайка, число больше не меняеется а тянется из памяти
+        self.likes = (0...15000).shuffled().first! // Сделал просто для интереса) После оставления комментария или лайка число больше не меняеется а тянется из памяти
         self.key = key
         self.imageName = key
     }
@@ -42,8 +29,5 @@ class ImageScreen: Codable {
         else { return UIImage(systemName: "person.2.crop.square.stack") }
     }
     
-    private func updateData() {
-        UserDefaults.standard.set(self, forKey: self.key)
-//        print(UserDefaults.standard.imageScreen(forKey: self.key) as Any)
-    }
+
 }

@@ -18,6 +18,7 @@ class View: UIView {
         super.init(frame: .zero)
         self.backgroundColor = .white
         
+        self.setupContentViewUI()
         self.commonInit()
         self.setupSwipe()
     }
@@ -26,13 +27,30 @@ class View: UIView {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func switchContent(image: UIImage?, likes: Int, userLike: Bool, comments: [String]?) { // Функция установки нового контента
-        self.contentView.image = image
+    func setupContentViewUI() {
+        self.contentView.textField.delegate = self
+        self.contentView.likeButton.addAction(UIAction(handler: { _ in
+            self.delegate?.tapLikeButton()
+        }), for: .touchUpInside)
+        
+        self.contentView.removeDataButton.addAction(UIAction(handler: { _ in
+            self.delegate?.removeData()
+        }), for: .touchUpInside)
+    }
+   
+    func switchContent(image: UIImage?, likes: Int,
+                       userLike: Bool,
+                       comments: [String]?,
+                       swipeSide: SwipeSide?) { // Функция установки нового контента
+        
+        if swipeSide != nil {
+            self.contentView.animateSwitchImage(image: image, swipeSide: swipeSide!)
+        }
         self.contentView.likes = String(likes)
         self.contentView.comment = "Comments:"
         if comments != nil {
             comments!.forEach { comment in
-                self.contentView.comment! += "\nUser: \(comment)"
+                self.contentView.comment! += "\nuser: \(comment)"
             }
         }
         if userLike {
@@ -73,9 +91,9 @@ class View: UIView {
     private func swipe(rec: UISwipeGestureRecognizer) {
         switch rec.direction {
         case .right:
-            self.delegate?.switchImage(swipeDirection: .right)
+            self.delegate?.switchImage(swipeSide: .right)
         case .left:
-            self.delegate?.switchImage(swipeDirection: .left)
+            self.delegate?.switchImage(swipeSide: .left)
         default: return
         }
     }
@@ -89,5 +107,20 @@ class View: UIView {
         
         self.addGestureRecognizer(left)
         self.addGestureRecognizer(right)
+    }
+}
+
+
+extension View: UITextFieldDelegate {
+    
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        guard let text = textField.text,
+              !text.isEmpty
+        else { return true }
+        
+        self.delegate?.sendComment(comment: text)
+        textField.resignFirstResponder()
+        textField.text = nil
+        return true
     }
 }
